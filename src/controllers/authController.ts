@@ -10,6 +10,8 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 // --- Register ---
 export const register = async (req: Request, res: Response) => {
+  // 1. Validate Input (Username, Password, verificationToken)
+  // Ensure your registerSchema now includes: verificationToken: z.string()
   const result = registerSchema.safeParse(req.body);
 
   if (!result.success) {
@@ -19,36 +21,54 @@ export const register = async (req: Request, res: Response) => {
     });
   }
 
-  // Extract data from the VALIDATED result, not req.body
-  const { userName, password, email } = result.data;
+  const { userName, password, verificationToken } = result.data;
 
   try {
-    const checks: any[] = [{ userName }];
-    if (email) {
-      checks.push({ email });
+    // 2. Verify the Token to get the Email
+    // This ensures the email was actually verified by YOUR otpController
+    let decodedEmail: string;
+
+    try {
+      const decoded = jwt.verify(
+        verificationToken as string,
+        process.env.JWT_SECRET!
+      ) as any;
+      if (!decoded.isVerified || !decoded.email) {
+        throw new Error("Invalid Token payload");
+      }
+      decodedEmail = decoded.email;
+    } catch (err) {
+      return res
+        .status(401)
+        .json({ message: "Invalid or expired verification token" });
     }
-    //  Check for existing user (UX Best Practice)
+
+    // 3. Standard Checks
     const existingUser = await prisma.user.findFirst({
-      where: { OR: checks },
+      where: {
+        OR: [{ userName }, { email: decodedEmail }],
+      },
     });
 
     if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+      return res.status(409).json({ message: "User or Email already exists" });
     }
 
-    //  Hash Password (SECURITY CRITICAL)
+    // 4. Create User
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    //  Create User
     const user = await prisma.user.create({
-      data: { userName, password: hashedPassword, email: email ?? null },
+      data: {
+        userName,
+        password: hashedPassword,
+        email: decodedEmail, // Use the email from the secure token
+      },
     });
 
     return res.status(201).json({ message: "User created", userId: user.id });
   } catch (err: any) {
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", details: err.message });
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 

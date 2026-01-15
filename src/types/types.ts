@@ -3,7 +3,8 @@ import { z } from "zod";
 export const registerSchema = z.object({
   userName: z.string().min(3),
   password: z.string().min(6),
-  email: z.string().email().optional(),
+  verificationToken: z.string(),
+  // email: z.string().email().optional(),
 });
 
 export const loginSchema = z.object({

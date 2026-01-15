@@ -5,10 +5,17 @@ import {
   logout,
   getMe,
 } from "../controllers/authController.js";
+import { sendOtp, verifyOtp } from "../controllers/otpController.js";
+import { sendOtpLimiter, verifyOtpLimiter } from "../middleware/rateLimiter.js";
 import { protect } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
+// --- OTP Routes ---
+router.post("/send-otp", sendOtpLimiter, sendOtp);
+router.post("/verify-otp", verifyOtpLimiter, verifyOtp);
+
+// --- Auth Routes ---
 router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);

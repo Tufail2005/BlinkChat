@@ -16,7 +16,6 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
   try {
     // 2. Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-
     // 3. Attach user info to request object
     req.user = decoded;
 
