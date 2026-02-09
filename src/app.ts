@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import { initializeSockets } from "./sockets/socketHandler.js"; // <--- Your Socket Logic
-
+import { startCleanupService } from "./servies/cleanupService.js";
 dotenv.config();
 
 const app: Express = express();
@@ -40,6 +40,8 @@ initializeSockets(io);
 
 // Attach API Routes
 app.use("/api", mainRouter);
+
+startCleanupService(); // <--- Apply cleanup function
 
 // Health Check
 app.get("/", (req, res) => {
